@@ -45,3 +45,6 @@ dev.db-journal
 
 # Local backups
 /respaldos_excel/
+
+# Python Backend (Not pushed to Next.js repo)
+/finasist-python-backend/

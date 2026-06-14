@@ -19,7 +19,7 @@
     "jose": "^6.2.3",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
-    "lucide-react": "^1.17.0",
+    "lucide-react": "^1.18.0",
     "mailparser": "^3.9.9",
     "next": "16.2.6",
     "nodemailer": "^8.0.10",
