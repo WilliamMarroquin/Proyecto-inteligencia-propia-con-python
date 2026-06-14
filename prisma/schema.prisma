@@ -1,0 +1,149 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Configuracion {
+  id            String   @id @default(cuid())
+  emailHost     String?
+  emailPort     Int?     @default(993)
+  emailUser     String?
+  emailPassword String?
+  emailTLS      Boolean  @default(true)
+  bankSender    String?
+  emailKeyword  String?
+  bankFileExtension String? @default("xlsx")
+  
+  // Apartado 1: Tokens y Sistema
+  tokenEmailUser     String?
+  tokenEmailPassword String?
+  tokenFirmaUrl      String?
+  tokenLeyenda       String? @db.Text // Por si el super admin quiere poner un mensajito extra de bienvenida
+  
+  // Apartado 2: Alertas de Morosidad (Recordatorios automáticos)
+  alertaEmailUser     String?
+  alertaEmailPassword String?
+  
+  updatedAt     DateTime @updatedAt
+}
+
+model Usuario {
+  id        String   @id @default(cuid())
+  nombre    String
+  apellidos String?
+  fotografia String? @db.Text
+  email     String   @unique
+  password  String   // Hashed con bcrypt
+  telefono  String?
+  rol       String   @default("ASISTENTE") // SUPER_ADMIN, JEFE, ASISTENTE, AUDITOR
+  permisos  Json     // ["dashboard", "cartera", "archivos", "datos", "ia", "ajustes", "usuarios", "auditoria"]
+  estado    String   @default("activo")
+  
+  otps      OTP[]
+  auditorias Auditoria[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model OTP {
+  id        String   @id @default(cuid())
+  usuarioId String
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  codigo    String
+  expiraEn  DateTime
+  usado     Boolean  @default(false)
+  
+  createdAt DateTime @default(now())
+}
+
+model Auditoria {
+  id        String   @id @default(cuid())
+  usuarioId String?
+  usuario   Usuario?  @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  accion    String   // Ej: "LOGIN", "CREATE_USER", "UPDATE_QUOTA"
+  detalles  String   @db.Text
+  createdAt DateTime @default(now())
+}
+
+model Cliente {
+  id        String   @id @default(cuid())
+  nombre    String
+  dpi       String?  @unique
+  telefono  String?
+  direccion String?
+  email     String?
+  
+  convenios Convenio[]
+  pagos     Pago[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Convenio {
+  id             String   @id @default(cuid())
+  clienteId      String
+  cliente        Cliente  @relation(fields: [clienteId], references: [id])
+  
+  montoCuota     Float
+  diaCorte       Int      // Ej: 15 (Quincenal) o 30 (Mensual)
+  estado         String   @default("activo") // activo, moroso, cancelado
+  
+  cuotaAnterior  Float?
+  fechaRecalculo DateTime?
+  
+  pagos          Pago[]
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Pago {
+  id             String   @id @default(cuid())
+  nombreCliente  String   // Para mantener compatibilidad actual
+  monto          Float
+  fecha          DateTime
+  referencia     String?
+  estado         String   @default("completado")
+  
+  clienteId      String?
+  cliente        Cliente?  @relation(fields: [clienteId], references: [id])
+  
+  convenioId     String?
+  convenio       Convenio? @relation(fields: [convenioId], references: [id])
+  
+  createdAt      DateTime @default(now())
+}
+
+model ChatSession {
+  id        String        @id @default(cuid())
+  title     String        @default("Nueva Conversación")
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  messages  ChatMessage[]
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  role      String   // "user" o "assistant"
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  
+  sessionId String?
+  session   ChatSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+model RespaldoExcel {
+  id        String   @id @default(cuid())
+  nombre    String
+  url       String   @db.Text // URL de Cloudinary o Supabase
+  fecha     DateTime @default(now())
+}
