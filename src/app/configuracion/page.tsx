@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { ArrowLeft, Settings, Mail, Building, RefreshCw, KeyRound, AlertTriangle } from "lucide-react";
 import FileUploadInput from "@/components/FileUploadInput";
+import { encrypt } from "@/lib/encryption";
 
 export default async function ConfiguracionPage(props: { searchParams: Promise<{ tab?: string }> }) {
   const searchParams = await props.searchParams;
@@ -12,19 +13,26 @@ export default async function ConfiguracionPage(props: { searchParams: Promise<{
   async function saveConfig(formData: FormData) {
     "use server";
     
+    // Función helper para no sobrescribir si el usuario dejó "********" o vacío
+    const getSecureValue = (key: string, existingValue: string | null) => {
+      const formValue = formData.get(key) as string;
+      if (!formValue || formValue === '********') return existingValue || '';
+      return encrypt(formValue);
+    };
+    
     const data = {
       emailHost: formData.get("emailHost") as string || config?.emailHost || 'imap.gmail.com',
       emailUser: formData.get("emailUser") as string || config?.emailUser || '',
-      emailPassword: formData.get("emailPassword") as string || config?.emailPassword || '',
+      emailPassword: getSecureValue("emailPassword", config?.emailPassword || null),
       bankSender: formData.get("bankSender") as string || config?.bankSender || '',
       emailKeyword: formData.get("emailKeyword") as string || config?.emailKeyword || '',
       bankFileExtension: formData.get("bankFileExtension") as string || config?.bankFileExtension || 'xlsx',
       tokenEmailUser: formData.get("tokenEmailUser") as string || config?.tokenEmailUser || '',
-      tokenEmailPassword: formData.get("tokenEmailPassword") as string || config?.tokenEmailPassword || '',
+      tokenEmailPassword: getSecureValue("tokenEmailPassword", config?.tokenEmailPassword || null),
       tokenFirmaUrl: formData.get("tokenFirmaUrl") as string || config?.tokenFirmaUrl || '',
       tokenLeyenda: formData.get("tokenLeyenda") as string || config?.tokenLeyenda || '',
       alertaEmailUser: formData.get("alertaEmailUser") as string || config?.alertaEmailUser || '',
-      alertaEmailPassword: formData.get("alertaEmailPassword") as string || config?.alertaEmailPassword || '',
+      alertaEmailPassword: getSecureValue("alertaEmailPassword", config?.alertaEmailPassword || null),
     };
 
     const existing = await prisma.configuracion.findFirst();
@@ -101,7 +109,7 @@ export default async function ConfiguracionPage(props: { searchParams: Promise<{
                 </div>
                 <div style={{ gridColumn: '1 / -1' }}>
                   <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Clave de Cifrado (App Password)</label>
-                  <input type="password" name="emailPassword" defaultValue={config?.emailPassword || ''} placeholder="••••••••••••••••" className="input" />
+                  <input type="password" name="emailPassword" defaultValue={config?.emailPassword ? '********' : ''} placeholder="••••••••••••••••" className="input" />
                 </div>
               </div>
               
@@ -150,7 +158,7 @@ export default async function ConfiguracionPage(props: { searchParams: Promise<{
                 </div>
                 <div>
                   <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Clave del Canal</label>
-                  <input type="password" name="tokenEmailPassword" defaultValue={config?.tokenEmailPassword || ''} className="input" />
+                  <input type="password" name="tokenEmailPassword" defaultValue={config?.tokenEmailPassword ? '********' : ''} className="input" />
                 </div>
                 <div style={{ gridColumn: '1 / -1' }}>
                   <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Leyenda Corporativa de Bienvenida</label>
@@ -185,7 +193,7 @@ export default async function ConfiguracionPage(props: { searchParams: Promise<{
                 </div>
                 <div>
                   <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Clave del Buzón</label>
-                  <input type="password" name="alertaEmailPassword" defaultValue={config?.alertaEmailPassword || ''} className="input" />
+                  <input type="password" name="alertaEmailPassword" defaultValue={config?.alertaEmailPassword ? '********' : ''} className="input" />
                 </div>
               </div>
             </div>
